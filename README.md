@@ -1,43 +1,62 @@
-# Win11 Recorder
+# Lite recoder
 
-Ung dung ghi am desktop cho Windows 11, viet bang Python.
+Ung dung ghi am desktop cho Windows 11, viet bang Python, co giao dien nho gon, tray icon, va ho tro ghi `M4A`.
+
+## Tong quan
+
+Lite recoder huong toi nhu cau ghi hop nhanh:
+
+- preset mac dinh `Hop`
+- dinh dang mac dinh `M4A (AAC)`
+- chat luong mac dinh `44.1 kHz / Mono / 128 kbps`
+- tu dong tach file theo `180 MB`
+- an vao tray khi minimize
+- bat dau hoac dung ghi ngay tu menu chuot phai cua tray icon
 
 ## Tinh nang
 
-- Giao dien cau hinh truoc khi ghi.
-- Ho tro nguon ghi `Microphone` va `System Audio` (loopback neu driver/Windows ho tro).
-- Co the de trong `Dinh dang` va `Chat luong`; ung dung tu dung mac dinh:
-  - `M4A (AAC)`
-  - `44.1 kHz`
-  - `Mono`
-  - `128 kbps`
-- Preset mac dinh khuyen dung la `Hop`:
-  - `M4A (AAC)`
-  - `44.1 kHz`
-  - `Mono`
-  - `128 kbps`
-  - `Tach file theo dung luong 180 MB`
-- Tuy chon dinh dang rong hon:
+- Giao dien desktop de chon nguon ghi, dinh dang, chat luong, thu muc luu.
+- Ho tro `Microphone` va `System Audio` neu may Windows co loopback/WASAPI.
+- Ho tro cac dinh dang:
   - `M4A (AAC)`
   - `AAC`
   - `MP3`
   - `WAV`
   - `FLAC`
   - `OGG Vorbis`
-- Tuy chon chat luong rong hon:
+- Ho tro cac tuy chon chat luong:
   - `Sample rate`: `22.05 / 32 / 44.1 / 48 / 96 kHz`
   - `Kenh`: `Mono / Stereo`
   - `Bitrate`: `64 / 96 / 128 / 160 / 192 / 256 / 320 kbps`
-- Tu dong tach file khi vuot nguong:
-  - theo thoi luong
-  - hoac theo dung luong
-- Tu dong tao file tiep theo ma khong can thao tac lai.
+- Co preset:
+  - `Hop`
+  - `Giong noi`
+  - `Nhac`
+  - `Tuy chinh`
+- Tu dong tach file:
+  - theo `dung luong`
+  - hoac theo `thoi luong`
+- Luu cau hinh vao `config.json`.
+- Ho tro tray icon:
+  - `Bat dau ghi`
+  - `Dung ghi`
+  - `Mo lai`
+  - `Thoat`
 
-## Phu thuoc
+## Mac dinh hien tai
 
+- `Preset`: `Hop`
+- `Dinh dang`: `M4A (AAC)`
+- `Sample rate`: `44.1 kHz`
+- `Kenh`: `Mono`
+- `Bitrate`: `128 kbps`
+- `Tach file`: `180 MB`
+
+## Yeu cau
+
+- Windows 11
 - Python 3.11+
-- `ffmpeg.exe` tren Windows
-- Goi Python trong `requirements.txt`
+- `ffmpeg.exe`
 
 ## Cai dat
 
@@ -47,83 +66,70 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Can tai `ffmpeg.exe` va:
+Can co `ffmpeg.exe` bang mot trong hai cach:
 
-- dat vao `PATH`, hoac
-- chon truc tiep trong giao dien qua truong `FFmpeg`
+- dat trong `PATH`
+- hoac chon truc tiep trong giao dien qua truong `FFmpeg`
 
-## Chay
+## Chay app
 
 ```bash
 python app.py
 ```
 
-## Cau hinh mac dinh
-
-- App doc va ghi cau hinh tai `config.json` trong cung thu muc du an.
-- Ban phat hanh hien tai mac dinh dung preset `Hop` va tach file `180 MB`.
-- Khi ban thay doi tuy chon va bat dau ghi, app se luu lai de lan sau mo len van giu nguyen.
-
 ## Tray icon
 
-- Khi thu nho cua so, app se an vao `system tray`
-- Khi bam nut dong cua so, app van tiep tuc chay trong tray neu ban chua chon `Thoat`
-- Bam chuot phai vao tray icon co cac muc:
+- Khi minimize, app se an vao `system tray`
+- Khi dong cua so, app tiep tuc chay trong tray cho den khi chon `Thoat`
+- Chuot phai vao tray icon de:
   - `Bat dau ghi`
   - `Dung ghi`
   - `Mo lai`
   - `Thoat`
-- Bam vao tray icon de mo lai cua so chinh
 
 ## Dong goi EXE
 
-Co 2 cach dong goi tren Windows.
-
-### Cach 1: chay bang Python
-
-Neu ban dung Visual Studio, VS Code, hoac terminal Python:
+### Cach 1: Python script
 
 ```bash
 python build_exe.py
 ```
 
-Script se:
-
-- cap nhat `pip`
-- cai dependencies trong `requirements.txt`
-- cai `PyInstaller`
-- build file `.exe`
-
-### Cach 2: chay bang batch file
-
-Neu ban muon bam chay truc tiep:
+### Cach 2: Batch file
 
 ```bat
 build_exe.bat
 ```
 
-Sau khi chay xong, file EXE se nam trong:
+Sau khi build xong, file EXE nam trong:
 
 ```text
 dist\Win11Recorder\
 ```
 
-### Cach mo trong Visual Studio
+### Dung trong Visual Studio
 
-1. Mo thu muc du an `win11-recorder`
-2. Chon Python environment phu hop
-3. Mo file `build_exe.py`
-4. Run file nay
-5. Sau khi xong, lay file trong `dist\Win11Recorder\`
+1. Mo thu muc du an
+2. Chon Python environment
+3. Mo `build_exe.py`
+4. Run file
+5. Lay ban build trong `dist\Win11Recorder\`
 
-### Luu y
+## Cau truc file chinh
 
-- Nen build tren chinh may Windows 11 ma ban se su dung
-- Can co internet de cai package trong lan build dau tien
-- Neu app ghi `m4a`, ban van can `ffmpeg.exe` tren may dich hoac cho phep nguoi dung tu chon duong dan `ffmpeg`
+- `app.py`: giao dien desktop va tray icon
+- `recorder.py`: engine ghi am va xoay file
+- `config.json`: cau hinh mac dinh va cau hinh da luu
+- `build_exe.py`: script dong goi bang Python
+- `build_exe.bat`: script dong goi bang batch
 
-## Ghi chu
+## Luu y
 
-- Tinh nang `System Audio` phu thuoc vao WASAPI loopback tren may Windows. Neu khong thay thiet bi, hay cap nhat driver am thanh hoac dung Microphone.
-- M4A duoc ma hoa qua FFmpeg. Trong moi file segment, app ghi lien tuc vao `ffmpeg` va xoay file khi dat nguong thoi gian hoac dung luong.
-- Trong moi truong hien tai, GUI/FFmpeg khong co san, nen can thu tren Windows 11 de xac nhan thiet bi va encoder cu the.
+- `System Audio` phu thuoc vao driver va WASAPI loopback cua may Windows.
+- Ghi `M4A` duoc ma hoa thong qua `FFmpeg`.
+- Nen build tren chinh may Windows 11 ma ban se su dung.
+- Lan build dau tien can internet de cai package.
+
+## License
+
+MIT
