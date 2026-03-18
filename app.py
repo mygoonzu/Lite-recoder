@@ -33,7 +33,7 @@ from recorder import AudioRecorder, RecordingOptions, list_input_devices
 
 
 FORMAT_OPTIONS = [
-    ("Mac dinh (M4A)", ""),
+    ("Default (M4A)", ""),
     ("M4A (AAC)", "m4a"),
     ("AAC", "aac"),
     ("MP3", "mp3"),
@@ -43,7 +43,7 @@ FORMAT_OPTIONS = [
 ]
 
 SAMPLE_RATE_OPTIONS = [
-    ("Mac dinh (44.1 kHz)", ""),
+    ("Default (44.1 kHz)", ""),
     ("22.05 kHz", "22050"),
     ("32 kHz", "32000"),
     ("44.1 kHz", "44100"),
@@ -52,13 +52,13 @@ SAMPLE_RATE_OPTIONS = [
 ]
 
 CHANNEL_OPTIONS = [
-    ("Mac dinh (Mono)", ""),
+    ("Default (Mono)", ""),
     ("Mono", "1"),
     ("Stereo", "2"),
 ]
 
 BITRATE_OPTIONS = [
-    ("Mac dinh (128 kbps)", ""),
+    ("Default (128 kbps)", ""),
     ("64 kbps", "64k"),
     ("96 kbps", "96k"),
     ("128 kbps", "128k"),
@@ -69,10 +69,10 @@ BITRATE_OPTIONS = [
 ]
 
 PRESET_OPTIONS = [
-    ("Hop (Khuyen dung)", "meeting"),
-    ("Giong noi", "voice"),
-    ("Nhac", "music"),
-    ("Tuy chinh", "custom"),
+    ("Meeting (Recommended)", "meeting"),
+    ("Voice", "voice"),
+    ("Music", "music"),
+    ("Custom", "custom"),
 ]
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
@@ -82,67 +82,72 @@ FORMAT_HINTS = {
         "sample_rates": {"22050", "32000", "44100", "48000", "96000"},
         "channels": {"1", "2"},
         "bitrates": {"64k", "96k", "128k", "160k", "192k", "256k", "320k"},
-        "hint": "Mac dinh dung M4A (AAC), 44.1 kHz, Mono, 128 kbps.",
+        "hint": "Default uses M4A (AAC), 44.1 kHz, Mono, 128 kbps.",
     },
     "m4a": {
         "sample_rates": {"32000", "44100", "48000"},
         "channels": {"1", "2"},
         "bitrates": {"96k", "128k", "160k", "192k", "256k"},
-        "hint": "M4A (AAC) phu hop cho ghi am thong dung, can bang giua chat luong va dung luong.",
+        "hint": "M4A (AAC) is a good default for everyday recording with balanced quality and size.",
     },
     "aac": {
         "sample_rates": {"32000", "44100", "48000"},
         "channels": {"1", "2"},
         "bitrates": {"96k", "128k", "160k", "192k", "256k"},
-        "hint": "AAC cho kich thuoc gon va chat luong tot; thuong dung 128-192 kbps.",
+        "hint": "AAC keeps files compact with good quality; 128-192 kbps is typical.",
     },
     "mp3": {
         "sample_rates": {"32000", "44100", "48000"},
         "channels": {"1", "2"},
         "bitrates": {"96k", "128k", "160k", "192k", "256k", "320k"},
-        "hint": "MP3 tuong thich rong; 128 kbps cho giong noi, 192 kbps tro len cho nhac.",
+        "hint": "MP3 is broadly compatible; 128 kbps works for voice, 192 kbps or higher for music.",
     },
     "wav": {
         "sample_rates": {"22050", "32000", "44100", "48000", "96000"},
         "channels": {"1", "2"},
         "bitrates": set(),
-        "hint": "WAV khong dung bitrate; file lon nhung de xu ly hau ky.",
+        "hint": "WAV does not use bitrate; files are larger but easier for editing workflows.",
     },
     "flac": {
         "sample_rates": {"22050", "32000", "44100", "48000", "96000"},
         "channels": {"1", "2"},
         "bitrates": set(),
-        "hint": "FLAC la lossless; bitrate khong ap dung.",
+        "hint": "FLAC is lossless; bitrate does not apply.",
     },
     "ogg": {
         "sample_rates": {"32000", "44100", "48000"},
         "channels": {"1", "2"},
         "bitrates": {"96k", "128k", "160k", "192k", "256k"},
-        "hint": "OGG Vorbis hop voi file gon; thuong dung 128-192 kbps.",
+        "hint": "OGG Vorbis is suitable for smaller files; 128-192 kbps is typical.",
     },
 }
 
 
 class LogBridge(QObject):
     message = Signal(str)
+    recording_state_changed = Signal(bool)
 
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Win11 Recorder")
+        self.setWindowTitle("Litle Recoder")
         self.resize(820, 560)
 
         self.log_bridge = LogBridge()
         self.log_bridge.message.connect(self.append_log)
-        self.recorder = AudioRecorder(status_callback=self.log_bridge.message.emit)
+        self.log_bridge.recording_state_changed.connect(self.set_recording_state)
+        self.recorder = AudioRecorder(
+            status_callback=self.log_bridge.message.emit,
+            state_callback=self.log_bridge.recording_state_changed.emit,
+        )
 
         self.ffmpeg_path_input = QLineEdit("ffmpeg.exe")
         self.output_dir_input = QLineEdit(str(Path.home() / "Recordings"))
         self.filename_prefix_input = QLineEdit("Record")
-        self.ffmpeg_path_input.setPlaceholderText("ffmpeg.exe hoac duong dan den ffmpeg.exe")
-        self.output_dir_input.setPlaceholderText("Thu muc luu file ghi am")
-        self.filename_prefix_input.setPlaceholderText("Vi du: Hop")
+        self.ffmpeg_path_input.setPlaceholderText("ffmpeg.exe or full path to ffmpeg.exe")
+        self.output_dir_input.setPlaceholderText("Folder to save recordings")
+        self.filename_prefix_input.setPlaceholderText("Example: Meeting")
 
         self.microphone_radio = QRadioButton("Microphone")
         self.system_radio = QRadioButton("System Audio")
@@ -160,23 +165,23 @@ class MainWindow(QMainWindow):
         self.summary_label.setWordWrap(True)
         self.summary_label.setStyleSheet("padding: 8px; background: #f3f6f8; border: 1px solid #d7dee3;")
 
-        self.no_split_radio = QRadioButton("Khong tach")
-        self.time_split_radio = QRadioButton("Theo thoi luong")
-        self.size_split_radio = QRadioButton("Theo dung luong")
+        self.no_split_radio = QRadioButton("No split")
+        self.time_split_radio = QRadioButton("By duration")
+        self.size_split_radio = QRadioButton("By size")
         self.no_split_radio.setChecked(True)
 
         self.time_spin = QSpinBox()
         self.time_spin.setRange(1, 24 * 60)
         self.time_spin.setValue(120)
-        self.time_spin.setSuffix(" phut")
+        self.time_spin.setSuffix(" min")
 
         self.size_spin = QSpinBox()
         self.size_spin.setRange(1, 10_240)
         self.size_spin.setValue(180)
         self.size_spin.setSuffix(" MB")
 
-        self.start_button = QPushButton("Bat dau")
-        self.stop_button = QPushButton("Dung")
+        self.start_button = QPushButton("Start")
+        self.stop_button = QPushButton("Stop")
         self.stop_button.setEnabled(False)
         self.start_button.setMinimumWidth(120)
         self.stop_button.setMinimumWidth(120)
@@ -206,46 +211,46 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(10)
 
-        intro = QLabel("Thiet lap nhanh cho ghi hop. Neu khong doi gi, app se dung preset Hop va tach file 180 MB.")
+        intro = QLabel("Quick setup for meeting recordings. If unchanged, the app uses the Meeting preset and splits files at 180 MB.")
         intro.setWordWrap(True)
 
-        config_group = QGroupBox("Cau hinh ghi am")
+        config_group = QGroupBox("Recording Settings")
         config_layout = QGridLayout(config_group)
         config_layout.setHorizontalSpacing(12)
         config_layout.setVerticalSpacing(10)
 
-        paths_group = QGroupBox("Duong dan")
+        paths_group = QGroupBox("Paths")
         paths_layout = QFormLayout(paths_group)
         paths_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         ffmpeg_row = self._with_browse(self.ffmpeg_path_input, self.pick_ffmpeg)
         output_row = self._with_browse(self.output_dir_input, self.pick_output_dir)
         paths_layout.addRow("FFmpeg", ffmpeg_row)
-        paths_layout.addRow("Thu muc luu", output_row)
-        paths_layout.addRow("Tien to ten file", self.filename_prefix_input)
+        paths_layout.addRow("Output folder", output_row)
+        paths_layout.addRow("Filename prefix", self.filename_prefix_input)
 
-        source_group = QGroupBox("Nguon ghi")
+        source_group = QGroupBox("Input Source")
         source_layout = QFormLayout(source_group)
         source_choice = QWidget()
         source_choice_layout = QHBoxLayout(source_choice)
         source_choice_layout.setContentsMargins(0, 0, 0, 0)
         source_choice_layout.addWidget(self.microphone_radio)
         source_choice_layout.addWidget(self.system_radio)
-        source_layout.addRow("Loai nguon", source_choice)
-        source_layout.addRow("Thiet bi", self.device_combo)
+        source_layout.addRow("Source type", source_choice)
+        source_layout.addRow("Device", self.device_combo)
 
-        quality_group = QGroupBox("Dinh dang va chat luong")
+        quality_group = QGroupBox("Format and Quality")
         quality_layout = QFormLayout(quality_group)
         quality_layout.addRow("Preset", self.preset_combo)
-        quality_layout.addRow("Dinh dang", self.format_combo)
+        quality_layout.addRow("Format", self.format_combo)
         quality_layout.addRow("Sample rate", self.sample_rate_combo)
-        quality_layout.addRow("Kenh", self.channels_combo)
+        quality_layout.addRow("Channels", self.channels_combo)
         quality_layout.addRow("Bitrate", self.bitrate_combo)
-        quality_layout.addRow("Goi y", self.format_hint_label)
-        note = QLabel("Neu bo trong, ung dung tu dung mac dinh M4A / 44.1 kHz / Mono / 128 kbps.")
+        quality_layout.addRow("Hint", self.format_hint_label)
+        note = QLabel("If left unchanged, the app uses M4A / 44.1 kHz / Mono / 128 kbps.")
         note.setWordWrap(True)
         quality_layout.addRow("", note)
 
-        split_group = QGroupBox("Tach file")
+        split_group = QGroupBox("File Splitting")
         split_layout = QFormLayout(split_group)
         split_choice = QWidget()
         split_choice_layout = QHBoxLayout(split_choice)
@@ -253,9 +258,9 @@ class MainWindow(QMainWindow):
         split_choice_layout.addWidget(self.no_split_radio)
         split_choice_layout.addWidget(self.time_split_radio)
         split_choice_layout.addWidget(self.size_split_radio)
-        split_layout.addRow("Che do", split_choice)
-        split_layout.addRow("Thoi luong", self.time_spin)
-        split_layout.addRow("Dung luong", self.size_spin)
+        split_layout.addRow("Mode", split_choice)
+        split_layout.addRow("Duration", self.time_spin)
+        split_layout.addRow("Size", self.size_spin)
 
         config_layout.addWidget(paths_group, 0, 0)
         config_layout.addWidget(source_group, 0, 1)
@@ -275,7 +280,7 @@ class MainWindow(QMainWindow):
         root.addWidget(self.summary_label)
         root.addWidget(config_group)
         root.addWidget(buttons)
-        root.addWidget(QLabel("Nhat ky"))
+        root.addWidget(QLabel("Log"))
         root.addWidget(self.log_view, stretch=1)
         self.setCentralWidget(central)
 
@@ -307,7 +312,7 @@ class MainWindow(QMainWindow):
         wrapper = QWidget()
         layout = QHBoxLayout(wrapper)
         layout.setContentsMargins(0, 0, 0, 0)
-        button = QPushButton("Chon...")
+        button = QPushButton("Browse...")
         button.clicked.connect(picker)
         layout.addWidget(line_edit)
         layout.addWidget(button)
@@ -319,15 +324,15 @@ class MainWindow(QMainWindow):
 
         tray_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
         self.tray_icon = QSystemTrayIcon(tray_icon, self)
-        self.tray_icon.setToolTip("Win11 Recorder")
+        self.tray_icon.setToolTip("Litle Recoder")
 
         menu = QMenu(self)
-        self.tray_start_action = menu.addAction("Bat dau ghi")
-        self.tray_stop_action = menu.addAction("Dung ghi")
+        self.tray_start_action = menu.addAction("Start Recording")
+        self.tray_stop_action = menu.addAction("Stop Recording")
         menu.addSeparator()
-        self.tray_show_action = menu.addAction("Mo lai")
+        self.tray_show_action = menu.addAction("Restore")
         menu.addSeparator()
-        self.tray_quit_action = menu.addAction("Thoat")
+        self.tray_quit_action = menu.addAction("Quit")
 
         self.tray_start_action.triggered.connect(self.start_recording)
         self.tray_stop_action.triggered.connect(self.stop_recording)
@@ -339,12 +344,23 @@ class MainWindow(QMainWindow):
         self.tray_icon.show()
 
     def pick_ffmpeg(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Chon ffmpeg.exe", "", "Executable (*.exe);;All Files (*)")
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select ffmpeg.exe",
+            self.ffmpeg_path_input.text().strip() or "",
+            "Executable (*.exe);;All Files (*)",
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
         if path:
             self.ffmpeg_path_input.setText(path)
 
     def pick_output_dir(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, "Chon thu muc luu")
+        path = QFileDialog.getExistingDirectory(
+            self,
+            "Select output folder",
+            self.output_dir_input.text().strip() or str(Path.home()),
+            options=QFileDialog.Option.DontUseNativeDialog,
+        )
         if path:
             self.output_dir_input.setText(path)
 
@@ -356,9 +372,9 @@ class MainWindow(QMainWindow):
         try:
             devices = list_input_devices(self.current_source_kind())
         except Exception as exc:  # noqa: BLE001
-            self.append_log(f"Khong tai duoc danh sach thiet bi: {exc}")
+            self.append_log(f"Could not load input devices: {exc}")
             devices = []
-        self.device_combo.addItem("Mac dinh", "")
+        self.device_combo.addItem("Default", "")
         for device in devices:
             self.device_combo.addItem(device, device)
 
@@ -519,17 +535,17 @@ class MainWindow(QMainWindow):
         format_text = self.format_combo.currentText()
         sample_rate_text = self.sample_rate_combo.currentText()
         channel_text = self.channels_combo.currentText()
-        bitrate_text = self.bitrate_combo.currentText() if self.bitrate_combo.isEnabled() else "Khong ap dung"
+        bitrate_text = self.bitrate_combo.currentText() if self.bitrate_combo.isEnabled() else "Not applicable"
 
         if self.size_split_radio.isChecked():
-            split_text = f"Tach theo dung luong {self.size_spin.value()} MB"
+            split_text = f"Split by size at {self.size_spin.value()} MB"
         elif self.time_split_radio.isChecked():
-            split_text = f"Tach theo thoi luong {self.time_spin.value()} phut"
+            split_text = f"Split by duration every {self.time_spin.value()} min"
         else:
-            split_text = "Khong tach file"
+            split_text = "No file splitting"
 
         self.summary_label.setText(
-            f"Tom tat: {preset_text} | {source_text} | {format_text} | "
+            f"Summary: {preset_text} | {source_text} | {format_text} | "
             f"{sample_rate_text} | {channel_text} | {bitrate_text} | {split_text}"
         )
 
@@ -561,6 +577,11 @@ class MainWindow(QMainWindow):
     def _mark_quitting(self) -> None:
         self._is_quitting = True
 
+    def set_recording_state(self, is_running: bool) -> None:
+        self.start_button.setEnabled(not is_running)
+        self.stop_button.setEnabled(is_running)
+        self._update_tray_actions()
+
     def build_options(self) -> RecordingOptions:
         split_mode = "none"
         if self.time_split_radio.isChecked():
@@ -589,19 +610,13 @@ class MainWindow(QMainWindow):
             self.recorder.start(options)
             self.save_config()
         except Exception as exc:  # noqa: BLE001
-            QMessageBox.critical(self, "Khong the bat dau", str(exc))
+            QMessageBox.critical(self, "Unable to Start Recording", str(exc))
             return
 
-        self.start_button.setEnabled(False)
-        self.stop_button.setEnabled(True)
-        self._update_tray_actions()
-        self.append_log("Bat dau ghi am.")
+        self.append_log("Recording started.")
 
     def stop_recording(self) -> None:
         self.recorder.stop()
-        self.start_button.setEnabled(True)
-        self.stop_button.setEnabled(False)
-        self._update_tray_actions()
 
     def append_log(self, message: str) -> None:
         self.log_view.appendPlainText(message)
@@ -612,8 +627,8 @@ class MainWindow(QMainWindow):
         if event.type() == event.Type.WindowStateChange and self.isMinimized() and self.tray_icon is not None:
             self.hide()
             self.tray_icon.showMessage(
-                "Win11 Recorder",
-                "Ung dung da an vao tray. Bam chuot phai vao tray icon de bat dau hoac dung ghi.",
+                "Litle Recoder",
+                "The app is hidden in the tray. Right-click the tray icon to start or stop recording.",
                 QSystemTrayIcon.MessageIcon.Information,
                 3000,
             )
@@ -624,8 +639,8 @@ class MainWindow(QMainWindow):
             event.ignore()
             self.hide()
             self.tray_icon.showMessage(
-                "Win11 Recorder",
-                "Ung dung van dang chay trong tray.",
+                "Litle Recoder",
+                "The app is still running in the tray.",
                 QSystemTrayIcon.MessageIcon.Information,
                 2500,
             )
@@ -633,7 +648,7 @@ class MainWindow(QMainWindow):
         try:
             self.save_config()
         except Exception as exc:  # noqa: BLE001
-            self.append_log(f"Khong luu duoc config: {exc}")
+            self.append_log(f"Could not save config: {exc}")
         if self.recorder.is_running():
             self.recorder.stop()
         if self.tray_icon is not None:

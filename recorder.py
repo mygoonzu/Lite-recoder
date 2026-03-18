@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import queue
+import shutil
 import subprocess
 import threading
 import time
@@ -79,8 +80,13 @@ def list_input_devices(source_kind: str) -> list[str]:
 
 
 class AudioRecorder:
-    def __init__(self, status_callback: Optional[Callable[[str], None]] = None) -> None:
+    def __init__(
+        self,
+        status_callback: Optional[Callable[[str], None]] = None,
+        state_callback: Optional[Callable[[bool], None]] = None,
+    ) -> None:
         self._status_callback = status_callback or (lambda _message: None)
+        self._state_callback = state_callback or (lambda _is_running: None)
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._options: Optional[RecordingOptions] = None
@@ -95,18 +101,20 @@ class AudioRecorder:
 
     def start(self, options: RecordingOptions) -> None:
         if self.is_running():
-            raise RecorderError("Dang ghi am.")
+            raise RecorderError("Recording is already in progress.")
         self._validate_options(options)
         self._options = options
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._record_loop, name="audio-recorder", daemon=True)
         self._thread.start()
+        self._state_callback(True)
 
     def stop(self) -> None:
         self._stop_event.set()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=10)
         self._thread = None
+        self._state_callback(False)
 
     def _emit(self, message: str) -> None:
         self._message_queue.put(message)
@@ -114,19 +122,21 @@ class AudioRecorder:
 
     def _validate_options(self, options: RecordingOptions) -> None:
         if not options.output_dir:
-            raise RecorderError("Chua chon thu muc luu.")
+            raise RecorderError("Please choose an output folder.")
         output_dir = Path(options.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         ffmpeg_path = options.ffmpeg_path.strip() or "ffmpeg.exe"
         if os.path.sep in ffmpeg_path or "/" in ffmpeg_path:
             if not Path(ffmpeg_path).exists():
-                raise RecorderError("Khong tim thay ffmpeg.exe.")
+                raise RecorderError("FFmpeg executable was not found.")
+        elif shutil.which(ffmpeg_path) is None:
+            raise RecorderError("FFmpeg executable was not found in PATH.")
 
         if options.split_mode == "time" and options.split_seconds <= 0:
-            raise RecorderError("Thoi luong tach file phai lon hon 0.")
+            raise RecorderError("Split duration must be greater than 0.")
         if options.split_mode == "size" and options.split_bytes <= 0:
-            raise RecorderError("Dung luong tach file phai lon hon 0.")
+            raise RecorderError("Split size must be greater than 0.")
 
     def _record_loop(self) -> None:
         assert self._options is not None
@@ -134,7 +144,7 @@ class AudioRecorder:
         recorder = None
         try:
             microphone = self._resolve_microphone(options)
-            self._emit(f"Su dung thiet bi: {microphone}")
+            self._emit(f"Using device: {microphone}")
             recorder = microphone.recorder(
                 samplerate=options.effective_sample_rate,
                 channels=options.effective_channels,
@@ -149,10 +159,12 @@ class AudioRecorder:
                         self._rotate_segment()
                     self._write_audio(pcm)
         except Exception as exc:  # noqa: BLE001
-            self._emit(f"Loi ghi am: {exc}")
+            self._emit(f"Recording error: {exc}")
         finally:
             self._close_active_process()
-            self._emit("Da dung ghi am.")
+            self._thread = None
+            self._state_callback(False)
+            self._emit("Recording stopped.")
 
     def _resolve_microphone(self, options: RecordingOptions):
         devices = sc.all_microphones(include_loopback=True)
@@ -160,7 +172,7 @@ class AudioRecorder:
             for device in devices:
                 if str(device) == options.device_name:
                     return device
-            raise RecorderError("Khong tim thay thiet bi duoc chon.")
+            raise RecorderError("The selected input device is no longer available.")
 
         if options.source_kind == "system":
             for device in devices:
@@ -168,7 +180,7 @@ class AudioRecorder:
                 is_loopback = bool(getattr(device, "isloopback", False)) or "loopback" in name.lower()
                 if is_loopback:
                     return device
-            raise RecorderError("Khong tim thay thiet bi System Audio loopback.")
+            raise RecorderError("No System Audio loopback device was found.")
 
         return sc.default_microphone()
 
@@ -189,16 +201,19 @@ class AudioRecorder:
             command,
             stdin=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
         )
         self._segment_started_at = time.monotonic()
-        self._emit(f"Bat dau file: {self._active_path.name}")
+        self._emit(f"Started file: {self._active_path.name}")
 
     def _build_ffmpeg_command(self, output_path: Path) -> list[str]:
         assert self._options is not None
         options = self._options
         command = [
             options.ffmpeg_path.strip() or "ffmpeg.exe",
+            "-hide_banner",
+            "-loglevel",
+            "error",
             "-y",
             "-f",
             "s16le",
@@ -224,7 +239,7 @@ class AudioRecorder:
         elif fmt == "ogg":
             command += ["-c:a", "libvorbis", "-b:a", options.effective_bitrate]
         else:
-            raise RecorderError(f"Dinh dang khong duoc ho tro: {fmt}")
+            raise RecorderError(f"Unsupported format: {fmt}")
 
         command.append(str(output_path))
         return command
@@ -241,8 +256,13 @@ class AudioRecorder:
 
     def _write_audio(self, pcm_bytes: bytes) -> None:
         if not self._active_process or not self._active_process.stdin:
-            raise RecorderError("Tien trinh ffmpeg khong san sang.")
-        self._active_process.stdin.write(pcm_bytes)
+            raise RecorderError("FFmpeg process is not ready.")
+        if self._active_process.poll() is not None:
+            raise RecorderError(self._build_ffmpeg_error(self._active_process))
+        try:
+            self._active_process.stdin.write(pcm_bytes)
+        except BrokenPipeError as exc:
+            raise RecorderError(self._build_ffmpeg_error(self._active_process)) from exc
 
     def _should_rotate(self) -> bool:
         assert self._options is not None
@@ -271,3 +291,14 @@ class AudioRecorder:
             process.kill()
         finally:
             self._active_path = None
+
+    def _build_ffmpeg_error(self, process: subprocess.Popen[bytes]) -> str:
+        details = ""
+        if process.stderr is not None:
+            try:
+                details = process.stderr.read().decode("utf-8", errors="replace").strip()
+            except Exception:  # noqa: BLE001
+                details = ""
+        if details:
+            return f"FFmpeg failed: {details.splitlines()[-1]}"
+        return "FFmpeg exited unexpectedly. Check the FFmpeg path and recording settings."
