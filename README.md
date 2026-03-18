@@ -1,64 +1,64 @@
 # Lite recoder
 
-Ung dung ghi am desktop cho Windows 11, viet bang Python, co giao dien nho gon, tray icon, va ho tro ghi `M4A`.
+Ứng dụng ghi âm desktop cho Windows 11, viết bằng Python, có giao diện gọn, tray icon, và hỗ trợ ghi `M4A`.
 
-## Tong quan
+## Tổng quan
 
-Lite recoder huong toi nhu cau ghi hop nhanh:
+Lite recoder hướng tới nhu cầu ghi họp nhanh:
 
-- preset mac dinh `Hop`
-- dinh dang mac dinh `M4A (AAC)`
-- chat luong mac dinh `44.1 kHz / Mono / 128 kbps`
-- tu dong tach file theo `180 MB`
-- an vao tray khi minimize
-- bat dau hoac dung ghi ngay tu menu chuot phai cua tray icon
+- preset mặc định `Họp`
+- định dạng mặc định `M4A (AAC)`
+- chất lượng mặc định `44.1 kHz / Mono / 128 kbps`
+- tự động tách file theo `180 MB`
+- ẩn vào tray khi thu nhỏ
+- bắt đầu hoặc dừng ghi ngay từ menu chuột phải của tray icon
 
-## Tinh nang
+## Tính năng
 
-- Giao dien desktop de chon nguon ghi, dinh dang, chat luong, thu muc luu.
-- Ho tro `Microphone` va `System Audio` neu may Windows co loopback/WASAPI.
-- Ho tro cac dinh dang:
+- Giao diện desktop để chọn nguồn ghi, định dạng, chất lượng, thư mục lưu.
+- Hỗ trợ `Microphone` và `System Audio` nếu máy Windows có loopback/WASAPI.
+- Hỗ trợ các định dạng:
   - `M4A (AAC)`
   - `AAC`
   - `MP3`
   - `WAV`
   - `FLAC`
   - `OGG Vorbis`
-- Ho tro cac tuy chon chat luong:
+- Hỗ trợ các tùy chọn chất lượng:
   - `Sample rate`: `22.05 / 32 / 44.1 / 48 / 96 kHz`
-  - `Kenh`: `Mono / Stereo`
+  - `Kênh`: `Mono / Stereo`
   - `Bitrate`: `64 / 96 / 128 / 160 / 192 / 256 / 320 kbps`
-- Co preset:
-  - `Hop`
-  - `Giong noi`
-  - `Nhac`
-  - `Tuy chinh`
-- Tu dong tach file:
-  - theo `dung luong`
-  - hoac theo `thoi luong`
-- Luu cau hinh vao `config.json`.
-- Ho tro tray icon:
-  - `Bat dau ghi`
-  - `Dung ghi`
-  - `Mo lai`
-  - `Thoat`
+- Có preset:
+  - `Họp`
+  - `Giọng nói`
+  - `Nhạc`
+  - `Tùy chỉnh`
+- Tự động tách file:
+  - theo `dung lượng`
+  - hoặc theo `thời lượng`
+- Lưu cấu hình vào `config.json`.
+- Hỗ trợ tray icon:
+  - `Bắt đầu ghi`
+  - `Dừng ghi`
+  - `Mở lại`
+  - `Thoát`
 
-## Mac dinh hien tai
+## Mặc định hiện tại
 
-- `Preset`: `Hop`
-- `Dinh dang`: `M4A (AAC)`
+- `Preset`: `Họp`
+- `Định dạng`: `M4A (AAC)`
 - `Sample rate`: `44.1 kHz`
-- `Kenh`: `Mono`
+- `Kênh`: `Mono`
 - `Bitrate`: `128 kbps`
-- `Tach file`: `180 MB`
+- `Tách file`: `180 MB`
 
-## Yeu cau
+## Yêu cầu
 
 - Windows 11
 - Python 3.11+
 - `ffmpeg.exe`
 
-## Cai dat
+## Cài đặt
 
 ```bash
 python -m venv .venv
@@ -66,12 +66,12 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Can co `ffmpeg.exe` bang mot trong hai cach:
+Cần có `ffmpeg.exe` bằng một trong hai cách:
 
-- dat trong `PATH`
-- hoac chon truc tiep trong giao dien qua truong `FFmpeg`
+- đặt trong `PATH`
+- hoặc chọn trực tiếp trong giao diện qua trường `FFmpeg`
 
-## Chay app
+## Chạy ứng dụng
 
 ```bash
 python app.py
@@ -79,56 +79,56 @@ python app.py
 
 ## Tray icon
 
-- Khi minimize, app se an vao `system tray`
-- Khi dong cua so, app tiep tuc chay trong tray cho den khi chon `Thoat`
-- Chuot phai vao tray icon de:
-  - `Bat dau ghi`
-  - `Dung ghi`
-  - `Mo lai`
-  - `Thoat`
+- Khi thu nhỏ, ứng dụng sẽ ẩn vào `system tray`
+- Khi đóng cửa sổ, ứng dụng tiếp tục chạy trong tray cho đến khi chọn `Thoát`
+- Chuột phải vào tray icon để:
+  - `Bắt đầu ghi`
+  - `Dừng ghi`
+  - `Mở lại`
+  - `Thoát`
 
-## Dong goi EXE
+## Đóng gói EXE
 
-### Cach 1: Python script
+### Cách 1: Python script
 
 ```bash
 python build_exe.py
 ```
 
-### Cach 2: Batch file
+### Cách 2: Batch file
 
 ```bat
 build_exe.bat
 ```
 
-Sau khi build xong, file EXE nam trong:
+Sau khi build xong, file EXE nằm trong:
 
 ```text
 dist\Win11Recorder\
 ```
 
-### Dung trong Visual Studio
+### Dùng trong Visual Studio
 
-1. Mo thu muc du an
-2. Chon Python environment
-3. Mo `build_exe.py`
+1. Mở thư mục dự án
+2. Chọn Python environment
+3. Mở `build_exe.py`
 4. Run file
-5. Lay ban build trong `dist\Win11Recorder\`
+5. Lấy bản build trong `dist\Win11Recorder\`
 
-## Cau truc file chinh
+## Cấu trúc file chính
 
-- `app.py`: giao dien desktop va tray icon
-- `recorder.py`: engine ghi am va xoay file
-- `config.json`: cau hinh mac dinh va cau hinh da luu
-- `build_exe.py`: script dong goi bang Python
-- `build_exe.bat`: script dong goi bang batch
+- `app.py`: giao diện desktop và tray icon
+- `recorder.py`: engine ghi âm và xoay file
+- `config.json`: cấu hình mặc định và cấu hình đã lưu
+- `build_exe.py`: script đóng gói bằng Python
+- `build_exe.bat`: script đóng gói bằng batch
 
-## Luu y
+## Lưu ý
 
-- `System Audio` phu thuoc vao driver va WASAPI loopback cua may Windows.
-- Ghi `M4A` duoc ma hoa thong qua `FFmpeg`.
-- Nen build tren chinh may Windows 11 ma ban se su dung.
-- Lan build dau tien can internet de cai package.
+- `System Audio` phụ thuộc vào driver và WASAPI loopback của máy Windows.
+- Ghi `M4A` được mã hóa thông qua `FFmpeg`.
+- Nên build trên chính máy Windows 11 mà bạn sẽ sử dụng.
+- Lần build đầu tiên cần internet để cài package.
 
 ## License
 
