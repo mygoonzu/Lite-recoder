@@ -1,0 +1,15 @@
+{
+  "preset": "meeting",
+  "ffmpeg_path": "ffmpeg.exe",
+  "output_dir": "",
+  "filename_prefix": "Record",
+  "source_kind": "microphone",
+  "device_name": null,
+  "file_format": null,
+  "sample_rate": null,
+  "channels": null,
+  "bitrate": null,
+  "split_mode": "size",
+  "split_minutes": 120,
+  "split_megabytes": 180
+}
