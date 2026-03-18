@@ -4,7 +4,7 @@ import json
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtCore import QObject, Qt, QStandardPaths, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -75,7 +75,14 @@ PRESET_OPTIONS = [
     ("Custom", "custom"),
 ]
 
-CONFIG_PATH = Path(__file__).with_name("config.json")
+DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.json")
+
+
+def user_config_path() -> Path:
+    config_root = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppConfigLocation)
+    if config_root:
+        return Path(config_root) / "config.json"
+    return Path.home() / ".litle-recoder" / "config.json"
 
 FORMAT_HINTS = {
     "": {
@@ -190,8 +197,18 @@ class MainWindow(QMainWindow):
 
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
+        self.log_view.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.TextSelectableByKeyboard
+        )
+        self.log_view.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.log_view.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
         self.log_view.setMaximumHeight(170)
         self.log_view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+        self.copy_log_action = self.log_view.addAction("Copy")
+        self.copy_log_action.triggered.connect(self.log_view.copy)
+        self.select_all_log_action = self.log_view.addAction("Select All")
+        self.select_all_log_action.triggered.connect(self.log_view.selectAll)
 
         self._build_ui()
         self._wire_events()
@@ -470,9 +487,12 @@ class MainWindow(QMainWindow):
 
     def load_config(self) -> None:
         data: dict[str, object] = {}
-        if CONFIG_PATH.exists():
+        for config_path in (user_config_path(), DEFAULT_CONFIG_PATH):
+            if not config_path.exists():
+                continue
             try:
-                data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+                data = json.loads(config_path.read_text(encoding="utf-8"))
+                break
             except Exception:  # noqa: BLE001
                 data = {}
 
@@ -527,7 +547,9 @@ class MainWindow(QMainWindow):
             "split_minutes": int(self.time_spin.value()),
             "split_megabytes": int(self.size_spin.value()),
         }
-        CONFIG_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        config_path = user_config_path()
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     def update_summary(self) -> None:
         preset_text = self.preset_combo.currentText()
@@ -607,8 +629,8 @@ class MainWindow(QMainWindow):
     def start_recording(self) -> None:
         try:
             options = self.build_options()
-            self.recorder.start(options)
             self.save_config()
+            self.recorder.start(options)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "Unable to Start Recording", str(exc))
             return
@@ -657,6 +679,8 @@ class MainWindow(QMainWindow):
 
 
 def main() -> int:
+    QApplication.setOrganizationName("mygoonzu")
+    QApplication.setApplicationName("Litle Recoder")
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

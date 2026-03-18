@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import queue
+import re
 import shutil
 import subprocess
 import threading
@@ -20,6 +21,30 @@ DEFAULT_SAMPLE_RATE = 44_100
 DEFAULT_CHANNELS = 1
 DEFAULT_BITRATE = "128k"
 BLOCK_FRAMES = 2048
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
+}
 
 
 class RecorderError(RuntimeError):
@@ -125,10 +150,13 @@ class AudioRecorder:
             raise RecorderError("Please choose an output folder.")
         output_dir = Path(options.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
+        if not output_dir.is_dir():
+            raise RecorderError("The selected output path is not a folder.")
 
         ffmpeg_path = options.ffmpeg_path.strip() or "ffmpeg.exe"
         if os.path.sep in ffmpeg_path or "/" in ffmpeg_path:
-            if not Path(ffmpeg_path).exists():
+            ffmpeg_candidate = Path(ffmpeg_path)
+            if not ffmpeg_candidate.exists() or not ffmpeg_candidate.is_file():
                 raise RecorderError("FFmpeg executable was not found.")
         elif shutil.which(ffmpeg_path) is None:
             raise RecorderError("FFmpeg executable was not found in PATH.")
@@ -186,11 +214,17 @@ class AudioRecorder:
 
     def _segment_path(self) -> Path:
         assert self._options is not None
-        output_dir = Path(self._options.output_dir)
+        output_dir = Path(self._options.output_dir).resolve()
         extension = self._options.effective_format
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         index = f"{self._segment_index:03d}"
-        return output_dir / f"{self._options.filename_prefix}_{timestamp}_{index}.{extension}"
+        prefix = self._safe_filename_prefix(self._options.filename_prefix)
+        candidate = (output_dir / f"{prefix}_{timestamp}_{index}.{extension}").resolve()
+        try:
+            candidate.relative_to(output_dir)
+        except ValueError as exc:
+            raise RecorderError("The output filename escapes the selected output folder.") from exc
+        return candidate
 
     def _open_new_segment(self) -> None:
         assert self._options is not None
@@ -227,7 +261,7 @@ class AudioRecorder:
 
         fmt = options.effective_format
         if fmt == "m4a":
-            command += ["-c:a", "aac", "-b:a", options.effective_bitrate]
+            command += ["-c:a", "aac", "-b:a", options.effective_bitrate, "-f", "mp4"]
         elif fmt == "aac":
             command += ["-c:a", "aac", "-b:a", options.effective_bitrate, "-f", "adts"]
         elif fmt == "mp3":
@@ -302,3 +336,14 @@ class AudioRecorder:
         if details:
             return f"FFmpeg failed: {details.splitlines()[-1]}"
         return "FFmpeg exited unexpectedly. Check the FFmpeg path and recording settings."
+
+    def _safe_filename_prefix(self, raw_prefix: str) -> str:
+        prefix = raw_prefix.strip() or "Record"
+        prefix = re.sub(r'[<>:"/\\\\|?*\\x00-\\x1f]', "_", prefix)
+        prefix = prefix.replace("..", "_")
+        prefix = prefix.strip(" .")
+        if not prefix:
+            prefix = "Record"
+        if prefix.upper() in WINDOWS_RESERVED_NAMES:
+            prefix = f"{prefix}_file"
+        return prefix[:80]
