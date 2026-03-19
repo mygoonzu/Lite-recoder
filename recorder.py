@@ -173,11 +173,16 @@ class AudioRecorder:
         try:
             microphone = self._resolve_microphone(options)
             self._emit(f"Using device: {microphone}")
-            recorder = microphone.recorder(
-                samplerate=options.effective_sample_rate,
-                channels=options.effective_channels,
-                blocksize=BLOCK_FRAMES,
-            )
+            recorder_kwargs: dict[str, int] = {"blocksize": BLOCK_FRAMES}
+            if options.sample_rate:
+                recorder_kwargs["samplerate"] = options.sample_rate
+            requested_channels = options.channels
+            if requested_channels is None and options.source_kind == "system":
+                requested_channels = 2
+            if requested_channels:
+                recorder_kwargs["channels"] = requested_channels
+                options.channels = requested_channels
+            recorder = microphone.recorder(**recorder_kwargs)
             with recorder:
                 self._open_new_segment()
                 while not self._stop_event.is_set():
