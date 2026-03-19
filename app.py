@@ -218,6 +218,7 @@ class MainWindow(QMainWindow):
         self._setup_tray()
         self.refresh_devices()
         self.load_config()
+        self.append_log(f"Log file: {self.log_file_path}")
 
     def _build_combo(self, options: list[tuple[str, str]]) -> QComboBox:
         combo = QComboBox()

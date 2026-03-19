@@ -182,7 +182,8 @@ class AudioRecorder:
             if requested_channels:
                 recorder_kwargs["channels"] = requested_channels
                 options.channels = requested_channels
-            recorder = microphone.recorder(**recorder_kwargs)
+            self._emit(f"Recorder arguments: {recorder_kwargs}")
+            recorder = self._create_recorder_with_fallback(microphone, recorder_kwargs)
             with recorder:
                 self._open_new_segment()
                 while not self._stop_event.is_set():
@@ -198,6 +199,14 @@ class AudioRecorder:
             self._thread = None
             self._state_callback(False)
             self._emit("Recording stopped.")
+
+    def _create_recorder_with_fallback(self, microphone, kwargs: dict[str, int]):
+        try:
+            return microphone.recorder(**kwargs)
+        except Exception as exc:  # noqa: BLE001
+            self._emit(f"Recorder fallback: {exc}")
+            fallback_kwargs = {"blocksize": kwargs.get("blocksize", BLOCK_FRAMES)}
+            return microphone.recorder(**fallback_kwargs)
 
     def _resolve_microphone(self, options: RecordingOptions):
         devices = sc.all_microphones(include_loopback=True)
