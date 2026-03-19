@@ -27,7 +27,7 @@ def main() -> int:
                 "--clean",
                 "--windowed",
                 "--name",
-                "Win11Recorder",
+                "LiteRecorder",
                 "--add-data",
                 "config.json;.",
                 "app.py",
@@ -38,7 +38,7 @@ def main() -> int:
         print("Make sure the app is closed and no file in dist/Win11Recorder is open in Explorer or another process.")
         return exc.returncode
 
-    print("\nBuild complete. Output is in dist/Win11Recorder/")
+        print("\nBuild complete. Output is in dist/LiteRecorder/")
     return 0
 
 

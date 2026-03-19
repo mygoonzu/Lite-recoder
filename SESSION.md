@@ -10,7 +10,7 @@
 
 - Desktop audio recorder app for Windows 11 written in Python.
 - UI language has been switched to English.
-- Window title is now `Litle Recoder`.
+- Window title is now `Lite Recorder`.
 - File picker and output folder picker were changed to non-native Qt dialogs to avoid UI freezes on Windows.
 - Recording flow was improved to surface FFmpeg errors instead of failing silently.
 - Recorder state is now pushed back to the UI so button state stays correct after failures.
@@ -23,7 +23,7 @@
 ## Known User Requirements
 
 - Keep the UI in English.
-- Keep the title spelled exactly as `Litle Recoder`.
+- Keep the title spelled exactly as `Lite Recorder`.
 - When possible, publish changes to GitHub after the user confirms.
 - The user said a GitHub token exists in environment variables.
 

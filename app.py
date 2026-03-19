@@ -138,7 +138,7 @@ class LogBridge(QObject):
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Litle Recoder")
+        self.setWindowTitle("Lite Recorder")
         self.resize(820, 560)
 
         self.log_bridge = LogBridge()
@@ -194,6 +194,9 @@ class MainWindow(QMainWindow):
         self.stop_button.setMinimumWidth(120)
         self._is_quitting = False
         self.tray_icon: QSystemTrayIcon | None = None
+
+        self.log_file_path = user_config_path().with_name("LiteRecorder.log")
+        self.log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
@@ -341,7 +344,7 @@ class MainWindow(QMainWindow):
 
         tray_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
         self.tray_icon = QSystemTrayIcon(tray_icon, self)
-        self.tray_icon.setToolTip("Litle Recoder")
+        self.tray_icon.setToolTip("Lite Recorder")
 
         menu = QMenu(self)
         self.tray_start_action = menu.addAction("Start Recording")
@@ -644,12 +647,20 @@ class MainWindow(QMainWindow):
         self.log_view.appendPlainText(message)
         scrollbar = self.log_view.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+        self._write_log_file(message)
+
+    def _write_log_file(self, message: str) -> None:
+        try:
+            with self.log_file_path.open("a", encoding="utf-8", newline="\n") as handle:
+                handle.write(message + "\n")
+        except Exception as exc:  # noqa: BLE001
+            self.log_view.appendPlainText(f"Failed to write log file: {exc}")
 
     def changeEvent(self, event) -> None:  # noqa: N802
         if event.type() == event.Type.WindowStateChange and self.isMinimized() and self.tray_icon is not None:
             self.hide()
             self.tray_icon.showMessage(
-                "Litle Recoder",
+                "Lite Recorder",
                 "The app is hidden in the tray. Right-click the tray icon to start or stop recording.",
                 QSystemTrayIcon.MessageIcon.Information,
                 3000,
@@ -661,7 +672,7 @@ class MainWindow(QMainWindow):
             event.ignore()
             self.hide()
             self.tray_icon.showMessage(
-                "Litle Recoder",
+                "Lite Recorder",
                 "The app is still running in the tray.",
                 QSystemTrayIcon.MessageIcon.Information,
                 2500,
@@ -680,7 +691,7 @@ class MainWindow(QMainWindow):
 
 def main() -> int:
     QApplication.setOrganizationName("mygoonzu")
-    QApplication.setApplicationName("Litle Recoder")
+    QApplication.setApplicationName("Lite Recorder")
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

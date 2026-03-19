@@ -39,7 +39,7 @@ git status --short --branch
 
 ## Working Conventions
 
-- Do not change the app title away from `Litle Recoder` unless the user explicitly asks.
+- Do not change the app title away from `Lite Recorder` unless the user explicitly asks.
 - Keep the visible UI language in English.
 - Prefer concise commits with clear messages.
 - Do not revert unrelated user changes in the repo.

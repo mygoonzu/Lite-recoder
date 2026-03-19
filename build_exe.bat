@@ -22,19 +22,19 @@ pyinstaller ^
   --noconfirm ^
   --clean ^
   --windowed ^
-  --name Win11Recorder ^
+  --name LiteRecorder ^
   --add-data "config.json;." ^
   app.py
 if errorlevel 1 goto :build_failed
 
 echo.
-echo Build complete. EXE is in dist\Win11Recorder\
+echo Build complete. EXE is in dist\LiteRecorder\
 endlocal
 exit /b 0
 
 :build_failed
 echo.
 echo Build failed.
-echo Make sure the app is closed and no file in dist\Win11Recorder is open in Explorer or another process.
+echo Make sure the app is closed and no file in dist\LiteRecorder is open in Explorer or another process.
 endlocal
 exit /b 1

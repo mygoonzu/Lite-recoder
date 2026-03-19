@@ -104,7 +104,7 @@ build_exe.bat
 Sau khi build xong, file EXE nằm trong:
 
 ```text
-dist\Win11Recorder\
+dist\LiteRecorder\
 ```
 
 ### Dùng trong Visual Studio
@@ -113,7 +113,7 @@ dist\Win11Recorder\
 2. Chọn Python environment
 3. Mở `build_exe.py`
 4. Run file
-5. Lấy bản build trong `dist\Win11Recorder\`
+5. Lấy bản build trong `dist\LiteRecorder\`
 
 ## Cấu trúc file chính
 
